@@ -56,10 +56,10 @@ jobs:
           # Set the sonar.projectBaseDir analysis property
           #projectBaseDir: # optional, default is .
         #uses: sonarsource/sonarqube-scan-action@master
-        #env:
-        #  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        #  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        #  GITHUB_TOKEN: ${{ secrets.GITH_TOKEN }}
-        #with:
-        #  args: >
-        #    -Dsonar.externalIssuesReportPaths=cx_result_sonar.json
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITH_TOKEN }}
+        with:
+          args: >
+            -Dsonar.externalIssuesReportPaths=cx_result_sonar.json

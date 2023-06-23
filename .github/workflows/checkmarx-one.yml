@@ -49,11 +49,17 @@ jobs:
           cx_tenant: ${{ secrets.CX_TENANT }} # This should be replaced by your tenant for Checkmarx One
           additional_params: --report-format sonar
       - name: Sonar CLI Action 
-        uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          GITHUB_TOKEN: ${{ secrets.GITH_TOKEN }}
-        with:
-          args: >
-            -Dsonar.externalIssuesReportPaths=cx_result_sonar.json
+        uses: SonarSource/sonarcloud-github-action@v1.9.1
+        #with:
+          # Additional arguments to the sonarcloud scanner
+          #args: # optional
+          # Set the sonar.projectBaseDir analysis property
+          #projectBaseDir: # optional, default is .
+        #uses: sonarsource/sonarqube-scan-action@master
+        #env:
+        #  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        #  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        #  GITHUB_TOKEN: ${{ secrets.GITH_TOKEN }}
+        #with:
+        #  args: >
+        #    -Dsonar.externalIssuesReportPaths=cx_result_sonar.json

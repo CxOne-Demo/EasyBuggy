@@ -1,65 +1,50 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# The Checkmarx One GitHub Action enables you to trigger SAST, SCA, and KICS scans directly from the GitHub workflow.
-# It provides a wrapper around the Checkmarx One CLI Tool which creates a zip archive from your source code repository
-# and uploads it to Checkmarx One for scanning. The Github Action provides easy integration with GitHub while enabling
-# scan customization using the full functionality and flexibility of the CLI tool.
-
-# This is a basic workflow to help you get started with Using Checkmarx One Action,
-# documentation can be found here : https://checkmarx.com/resource/documents/en/34965-68702-checkmarx-one-github-actions.html
-
-name: Checkmarx Scan
-
-# Controls when the workflow will run
+name: Security Scan
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
-    branches: [ "master" ]
-
-permissions:
-  contents: read
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+  push:
+    branches:
+      - main
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    permissions:
-      contents: read # for actions/checkout to fetch code
-      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-      actions: read # only required for a private repository by github/codeql-action/upload-sarif
+  scan:
 
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    if: ${{ true }}
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # This step checks out a copy of your repository.
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      # This step creates the Checkmarx One scan
-      - name: Checkmarx One scan
-        uses: checkmarx/ast-github-action@8e887bb93dacc44e0f5b64ee2b06d5815f89d4fc
+      - uses: actions/checkout@v2
+      - run: |
+          git fetch --no-tags --prune --depth=1 origin +refs/heads/*:refs/remotes/origin/*
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
         with:
-          base_uri: https://deu.ast.checkmarx.net/  # This should be replaced by your base uri for Checkmarx One
-          cx_client_id: ${{ secrets.CX_CLIENT_ID }} # This should be created within your Checkmarx One account : https://checkmarx.com/resource/documents/en/34965-118315-authentication-for-checkmarx-one-cli.html#UUID-a4e31a96-1f36-6293-e95a-97b4b9189060_UUID-4123a2ff-32d0-2287-8dd2-3c36947f675e
-          cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }} # This should be created within your Checkmarx One account : https://checkmarx.com/resource/documents/en/34965-118315-authentication-for-checkmarx-one-cli.html#UUID-a4e31a96-1f36-6293-e95a-97b4b9189060_UUID-4123a2ff-32d0-2287-8dd2-3c36947f675e
-          cx_tenant: ${{ secrets.CX_TENANT }} # This should be replaced by your tenant for Checkmarx One
-          additional_params: --report-format sonar
-      - name: Sonar CLI Action 
-        uses: SonarSource/sonarcloud-github-action@v1.9.1
-        #with:
-          # Additional arguments to the sonarcloud scanner
-          #args: # optional
-          # Set the sonar.projectBaseDir analysis property
-          #projectBaseDir: # optional, default is .
-        #uses: sonarsource/sonarqube-scan-action@master
-        #env:
-        #  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        #  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        #  GITHUB_TOKEN: ${{ secrets.GITH_TOKEN }}
-        #with:
-        #  args: >
-        #    -Dsonar.externalIssuesReportPaths=cx_result_sonar.json
+          java-version: 11.0.7
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Checkmarx One CLI Action
+        uses: checkmarx/ast-github-action@main
+        with:
+            base_uri: https://deu.ast.checkmarx.net/
+            cx_tenant: ${{ secrets.CX_TENANT }}
+            cx_client_id: ${{ secrets.CX_CLIENT_ID }}
+            cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
+            additional_params: --report-format sonar
+
+      - name: Sonar analyze
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey= -Dsonar.organization=cxone-demo -Dsonar.externalIssuesReportPaths=./cx_result_sonar.json 
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ gith.token }}
